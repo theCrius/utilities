@@ -56,14 +56,15 @@ function Initialize-LogPath {
         }
         
         # Create the logs folder name based on script name
-        $scriptName = if ($MyInvocation.MyCommand.Name) { 
-            [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name) 
-        }
-        elseif ($PSCommandPath) {
+        # Use script-level variables to get the actual script name, not function name
+        $scriptName = if ($PSCommandPath) {
             [System.IO.Path]::GetFileNameWithoutExtension($PSCommandPath)
         }
+        elseif ($MyInvocation.ScriptName) {
+            [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.ScriptName)
+        }
         else { 
-            "superping" 
+            "logs" 
         }
         $logsFolder = "${scriptName}_logs"
         $logDir = Join-Path -Path $scriptDir -ChildPath $logsFolder
