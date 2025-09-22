@@ -38,23 +38,30 @@ if ($psVersion.Major -eq 5 -and $executionPolicy -in @('Restricted', 'AllSigned'
     }
 }
 
-# Function to write timestamped output
-function Write-TimestampedOutput {
+# Function to add timestamp prefix to a message
+function Add-Timestamp {
+    param([string]$Message)
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH.mm.ss"
+    return "$timestamp - $Message"
+}
+
+# Main logging function - writes to both console and log file
+function Write-Log {
     param(
         [string]$Message,
-        [string]$LogPath
+        [string]$LogPath,
+        [string]$ConsoleColor = "White"
     )
     
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH.mm.ss"
-    $output = "$timestamp - $Message"
+    $timestampedMessage = Add-Timestamp $Message
     
-    # Write to console
-    Write-Host $output
+    # Write to console with color
+    Write-Host $timestampedMessage -ForegroundColor $ConsoleColor
     
-    # Write to log file only if LogPath is valid
+    # Write to log file if LogPath is valid
     if (-not [string]::IsNullOrEmpty($LogPath)) {
         try {
-            Add-Content -Path $LogPath -Value $output -ErrorAction Stop
+            Add-Content -Path $LogPath -Value $timestampedMessage -ErrorAction Stop
         }
         catch {
             Write-Warning "Failed to write to log file: $($_.Exception.Message)"
@@ -310,37 +317,6 @@ function Write-SummaryStatistics {
     }
     
     Write-Host "Log saved to: $LogPath" -ForegroundColor White
-    
-    # Write summary to log
-    Write-TimestampedOutput "=== PING SESSION SUMMARY ===" $LogPath
-    Write-TimestampedOutput "Total pings sent: $TotalPings" $LogPath
-    Write-TimestampedOutput "Successful pings: $SuccessfulPings" $LogPath
-    Write-TimestampedOutput "Failed pings: $FailedPings" $LogPath
-    if ($TotalPings -gt 0) {
-        Write-TimestampedOutput "Success rate: $([math]::Round(($SuccessfulPings / $TotalPings) * 100, 2))%" $LogPath
-    }
-    
-    # Add jitter statistics to log
-    if ($jitterStats) {
-        Write-TimestampedOutput "Response time - Min: $($jitterStats.Min)ms, Max: $($jitterStats.Max)ms, Avg: $($jitterStats.Average)ms" $LogPath
-        Write-TimestampedOutput "Jitter (std dev): $($jitterStats.Jitter)ms - $($jitterStats.Quality)" $LogPath
-    }
-    elseif ($ResponseTimes.Count -eq 1) {
-        Write-TimestampedOutput "Response time - Single ping: $($ResponseTimes[0])ms" $LogPath
-        Write-TimestampedOutput "Jitter: N/A (insufficient data)" $LogPath
-    }
-    
-    # Log anomalous spikes
-    if ($AnomalousSpikes.Count -gt 0) {
-        Write-TimestampedOutput "=== ANOMALOUS SPIKES (adaptive threshold: ${FinalSpikeThreshold}ms @ ${SpikeMultiplier}%) ===" $LogPath
-        for ($i = 0; $i -lt $AnomalousSpikes.Count; $i++) {
-            $spike = $AnomalousSpikes[$i]
-            Write-TimestampedOutput "$($i + 1) - $($spike.Timestamp) - $($spike.Message)" $LogPath
-        }
-    }
-    
-    Write-TimestampedOutput "Total runtime: $([math]::Round($TotalRuntime, 2)) seconds" $LogPath
-    Write-TimestampedOutput "Ping session ended" $LogPath
 }
 
 # Main execution starts here
@@ -375,7 +351,7 @@ Write-Host "Adaptive spike detection: ${SpikeMultiplier}% multiplier (initial th
 Write-Host "----------------------------------------" -ForegroundColor Green
 
 # Initial log entry
-Write-TimestampedOutput "Ping session started - Target: $Destination, Adaptive spike detection: ${SpikeMultiplier}% multiplier" $LogFile
+Write-Log "Ping session started - Target: $Destination, Adaptive spike detection: ${SpikeMultiplier}% multiplier" $LogFile
 
 try {
     while ($true) {
@@ -383,7 +359,7 @@ try {
         if ($TimeLimit -gt 0) {
             $elapsed = ((Get-Date) - $startTime).TotalSeconds
             if ($elapsed -ge $TimeLimit) {
-                Write-TimestampedOutput "Time limit of $TimeLimit seconds reached. Stopping ping." $LogFile
+                Write-Log "Time limit of $TimeLimit seconds reached. Stopping ping." $LogFile
                 break
             }
         }
@@ -420,9 +396,9 @@ try {
                         Write-Host $thresholdMessage -ForegroundColor Cyan
                         Write-Host $detailMessage -ForegroundColor DarkCyan
                         Write-Host $calcMessage -ForegroundColor DarkCyan
-                        Write-TimestampedOutput $thresholdMessage $LogFile
-                        Write-TimestampedOutput $detailMessage $LogFile
-                        Write-TimestampedOutput $calcMessage $LogFile
+                        Write-Log $thresholdMessage $LogFile
+                        Write-Log $detailMessage $LogFile
+                        Write-Log $calcMessage $LogFile
                     }
                 }
             }
@@ -438,11 +414,11 @@ try {
                 $anomalousSpikes += $spikeEntry
             }
             
-            Write-TimestampedOutput $pingResult.Message $LogFile
+            Write-Log $pingResult.Message $LogFile
             $successCount++
         }
         else {
-            Write-TimestampedOutput $pingResult.Message $LogFile
+            Write-Log $pingResult.Message $LogFile
             $failCount++
         }
         
@@ -451,7 +427,7 @@ try {
     }
 }
 catch {
-    Write-TimestampedOutput "Ping session interrupted: $($_.Exception.Message)" $LogFile
+    Write-Log "Ping session interrupted: $($_.Exception.Message)" $LogFile
 }
 finally {
     # Calculate total runtime and display summary
@@ -459,4 +435,7 @@ finally {
     $totalTime = ($endTime - $startTime).TotalSeconds
     
     Write-SummaryStatistics -TotalPings $pingCount -SuccessfulPings $successCount -FailedPings $failCount -ResponseTimes $responseTimes -AnomalousSpikes $anomalousSpikes -TotalRuntime $totalTime -LogPath $LogFile -FinalSpikeThreshold $currentSpikeThreshold -SpikeMultiplier $SpikeMultiplier
+    
+    # Final log entry
+    Add-Content -Path $LogFile -Value (Add-Timestamp "Ping session ended")
 }
