@@ -23,3 +23,24 @@ Scripts, notes and other stuff I need. Might be cool, might be broken, use at yo
   - **Direct**: `.\uberping.ps1 <destination> [-TimeLimit <seconds>] [options]`
   - **With Launcher** (recommended for PowerShell 5.1): `.\uberping-launcher.ps1 <destination> [options]`
   - **Execution Policy Bypass**: `PowerShell -ExecutionPolicy Bypass -File "uberping.ps1" <destination> [options]`
+
+### Bash Scripts (`scripts/bash/`)
+
+#### UberPing - Advanced Network Connectivity Monitor (Linux/macOS)
+- **Main Script**: [`uberping.sh`](scripts/bash/uberping.sh)
+- **Launcher**: [`uberping-launcher.sh`](scripts/bash/uberping-launcher.sh) *(handles dependency checks)*
+- **Documentation**: [`uberping_readme.md`](scripts/bash/uberping_readme.md)
+- **Description**: A bash-compatible network monitoring tool with the same advanced features as the PowerShell version, designed for Linux, macOS, and Unix-like systems
+- **Features**:
+  - Cross-platform compatibility (Linux, macOS, Unix)
+  - Same adaptive spike detection algorithm as PowerShell version
+  - ANSI colored console output
+  - Signal handling for graceful shutdown (Ctrl+C)
+  - Automatic dependency checking
+  - Comprehensive logging and statistics
+  - Flexible timing and configuration options
+- **Requirements**: `ping`, `bc`, Bash 4.0+
+- **Usage Options**:
+  - **Direct**: `./uberping.sh -d <destination> [-t <seconds>] [options]`
+  - **With Launcher** (recommended): `./uberping-launcher.sh -d <destination> [options]`
+  - **Global Install**: `sudo cp uberping.sh /usr/local/bin/uberping && chmod +x /usr/local/bin/uberping`
