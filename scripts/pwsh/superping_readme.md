@@ -229,7 +229,6 @@ Anomalous Spikes (adaptive threshold: 108ms @ 110%):
 3 - 2025-09-22 15.16.19 - Reply from 8.8.8.8: bytes=32 time=127ms TTL=116
 ...
 14 - 2025-09-22 15.16.32 - Reply from 8.8.8.8: bytes=32 time=163ms TTL=116
-Log saved to: C:\Users\Claudio\Downloads\superping_logs\ping_log_20250922_151602.txt
 ```
 
 **Key Features Demonstrated:**
