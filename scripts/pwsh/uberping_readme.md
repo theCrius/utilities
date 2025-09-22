@@ -77,7 +77,7 @@ Monitor Google DNS continuously with default settings:
 **Output:**
 ```
 Starting ping to 8.8.8.8
-Log file: C:\Scripts\uberping_logs\uberuberping_log_20250922_143832.txt
+Log file: C:\Scripts\uberping_logs\uberping_log_20250922_143832.txt
 Running continuously (Press Ctrl+C to stop)
 Ping interval: 1000ms
 Spike threshold: 100ms
