@@ -1,5 +1,3 @@
-# This is a script meant to ping something and show time when the ping was executed as well as write a log
-# It's meant to run on powershell 7.1 but could work on previous versions as well, I simply didn't check
 param(
     [Parameter(Mandatory=$true, Position=0)]
     [string]$Destination,
@@ -8,7 +6,7 @@ param(
     [int]$TimeLimit = 0,  # 0 means continuous, any other value is time limit in seconds
     
     [Parameter(Mandatory=$false)]
-    [string]$LogFile = "ping_log_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt",
+    [string]$LogFile = "",
     
     [Parameter(Mandatory=$false)]
     [int]$Interval = 1000  # Ping interval in milliseconds
@@ -37,7 +35,26 @@ if (-not $Destination) {
     exit 1
 }
 
-# Create log file directory if it doesn't exist
+# Set default log file path if not provided
+if ([string]::IsNullOrEmpty($LogFile)) {
+    # Get the directory where the script is located
+    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    
+    # Create the logs folder name based on script name
+    $scriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name)
+    $logsFolder = "${scriptName}_logs"
+    $logDir = Join-Path -Path $scriptDir -ChildPath $logsFolder
+    
+    # Create the logs directory if it doesn't exist
+    if (-not (Test-Path -Path $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+    
+    # Set the log file path
+    $LogFile = Join-Path -Path $logDir -ChildPath "ping_log_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
+}
+
+# Create log file directory if it doesn't exist (for custom paths)
 $logDir = Split-Path -Path $LogFile -Parent
 if ($logDir -and -not (Test-Path -Path $logDir)) {
     New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -76,18 +93,46 @@ try {
         $pingCount++
         
         try {
-            # Perform ping using Test-Connection
-            $pingResult = Test-Connection -ComputerName $Destination -Count 1 -ErrorAction Stop
+            # Use native ping command for accurate timing
+            $pingOutput = ping $Destination -n 1 -w 1000
             
-            # Extract relevant information
-            $responseTime = [math]::Round($pingResult.ResponseTime, 0)
-            $address = $pingResult.Address
+            # Parse the ping output to extract timing information
+            $replyLine = $pingOutput | Where-Object { $_ -match "Reply from" }
             
-            # Format the output similar to traditional ping
-            $message = "Reply from ${address}: bytes=32 time=${responseTime}ms TTL=64"
-            Write-TimestampedOutput $message $LogFile
-            
-            $successCount++
+            if ($replyLine) {
+                # Extract the relevant information from the ping output
+                if ($replyLine -match "Reply from ([\d\.]+|[^:]+): bytes=(\d+) time[<=](\d+)ms TTL=(\d+)") {
+                    $address = $matches[1]
+                    $bytes = $matches[2]
+                    $time = $matches[3]
+                    $ttl = $matches[4]
+                    
+                    $message = "Reply from ${address}: bytes=${bytes} time=${time}ms TTL=${ttl}"
+                } elseif ($replyLine -match "Reply from ([\d\.]+|[^:]+): bytes=(\d+) time<(\d+)ms TTL=(\d+)") {
+                    $address = $matches[1]
+                    $bytes = $matches[2]
+                    $time = "<" + $matches[3]
+                    $ttl = $matches[4]
+                    
+                    $message = "Reply from ${address}: bytes=${bytes} time=${time}ms TTL=${ttl}"
+                } else {
+                    # Fallback - just use the original line
+                    $message = $replyLine.Trim()
+                }
+                
+                Write-TimestampedOutput $message $LogFile
+                $successCount++
+            } else {
+                # Check for timeout or unreachable messages
+                $timeoutLine = $pingOutput | Where-Object { $_ -match "Request timed out|Destination host unreachable|could not find host" }
+                if ($timeoutLine) {
+                    $message = $timeoutLine.Trim()
+                } else {
+                    $message = "Request timed out or destination unreachable: $Destination"
+                }
+                Write-TimestampedOutput $message $LogFile
+                $failCount++
+            }
         }
         catch {
             # Handle ping failure
