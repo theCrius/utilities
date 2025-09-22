@@ -1,5 +1,5 @@
-# SuperPing Launcher - Handles execution policy issues
-# This script helps run SuperPing on systems with strict execution policies
+# UberPing Launcher - Handles execution policy issues
+# This script helps run UberPing on systems with strict execution policies
 
 param(
     [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
@@ -8,23 +8,23 @@ param(
 
 # Check if we have any arguments
 if ($Arguments.Count -eq 0) {
-    Write-Host "SuperPing Launcher" -ForegroundColor Cyan
-    Write-Host "Usage: .\superping-launcher.ps1 <destination> [additional parameters]" -ForegroundColor Yellow
+    Write-Host "UberPing Launcher" -ForegroundColor Cyan
+    Write-Host "Usage: .\uberping-launcher.ps1 <destination> [additional parameters]" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Examples:" -ForegroundColor Green
-    Write-Host "  .\superping-launcher.ps1 8.8.8.8" -ForegroundColor White
-    Write-Host "  .\superping-launcher.ps1 google.com -TimeLimit 60 -LogFile 'ping.log'" -ForegroundColor White
+    Write-Host "  .\uberping-launcher.ps1 8.8.8.8" -ForegroundColor White
+    Write-Host "  .\uberping-launcher.ps1 google.com -TimeLimit 60 -LogFile 'ping.log'" -ForegroundColor White
     exit 1
 }
 
 # Get the directory where this launcher script is located
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$superpingScript = Join-Path $scriptDir "superping.ps1"
+$uberpingScript = Join-Path $scriptDir "uberping.ps1"
 
-# Check if superping.ps1 exists
-if (-not (Test-Path $superpingScript)) {
-    Write-Host "ERROR: SuperPing script not found at: $superpingScript" -ForegroundColor Red
-    Write-Host "Make sure superping.ps1 is in the same directory as this launcher." -ForegroundColor Yellow
+# Check if uberping.ps1 exists
+if (-not (Test-Path $uberpingScript)) {
+    Write-Host "ERROR: UberPing script not found at: $uberpingScript" -ForegroundColor Red
+    Write-Host "Make sure uberping.ps1 is in the same directory as this launcher." -ForegroundColor Yellow
     exit 1
 }
 
@@ -37,11 +37,11 @@ function Show-ExecutionPolicyHelp {
     Write-Host "SOLUTIONS (choose one):" -ForegroundColor Green
     Write-Host ""
     Write-Host "1. TEMPORARY - Run once with bypass:" -ForegroundColor Cyan
-    Write-Host "   PowerShell -ExecutionPolicy Bypass -File `"$superpingScript`" $($Arguments -join ' ')" -ForegroundColor White
+    Write-Host "   PowerShell -ExecutionPolicy Bypass -File `"$uberpingScript`" $($Arguments -join ' ')" -ForegroundColor White
     Write-Host ""
     Write-Host "2. SESSION - Allow for current session only:" -ForegroundColor Cyan
     Write-Host "   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor White
-    Write-Host "   Then run: .\superping.ps1 $($Arguments -join ' ')" -ForegroundColor White
+    Write-Host "   Then run: .\uberping.ps1 $($Arguments -join ' ')" -ForegroundColor White
     Write-Host ""
     Write-Host "3. PERMANENT - Change user policy (recommended):" -ForegroundColor Cyan
     Write-Host "   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor White
@@ -55,10 +55,10 @@ function Show-ExecutionPolicyHelp {
 
 # Try to run the script and catch execution policy errors
 try {
-    Write-Host "Launching SuperPing..." -ForegroundColor Green
+    Write-Host "Launching UberPing..." -ForegroundColor Green
     
     # Try to execute the script
-    $expression = "& `"$superpingScript`" $($Arguments -join ' ')"
+    $expression = "& `"$uberpingScript`" $($Arguments -join ' ')"
     Invoke-Expression $expression
     
 }
@@ -72,7 +72,7 @@ catch [System.Management.Automation.PSSecurityException] {
     if ($response -match '^[Yy]') {
         Write-Host "Running with ExecutionPolicy Bypass..." -ForegroundColor Green
         try {
-            $bypassExpression = "PowerShell -ExecutionPolicy Bypass -File `"$superpingScript`" $($Arguments -join ' ')"
+            $bypassExpression = "PowerShell -ExecutionPolicy Bypass -File `"$uberpingScript`" $($Arguments -join ' ')"
             Invoke-Expression $bypassExpression
         }
         catch {

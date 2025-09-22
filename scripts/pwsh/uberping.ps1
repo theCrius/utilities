@@ -95,7 +95,7 @@ function Initialize-LogPath {
         }
         
         # Set the log file path
-        return Join-Path -Path $logDir -ChildPath "ping_log_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
+        return Join-Path -Path $logDir -ChildPath "uberping_log_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
     }
     else {
         # Create log file directory if it doesn't exist (for custom paths)

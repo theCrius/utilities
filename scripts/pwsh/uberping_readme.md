@@ -1,8 +1,8 @@
-# SuperPing - Advanced Network Connectivity Monitor
+# UberPing - Advanced Network Connectivity Monitor
 
 ## Overview
 
-SuperPing is a PowerShell-based network monitoring tool that performs continuous ping operations with advanced analytics, logging, and anomaly detection. It's designed to help network administrators and IT professionals monitor network connectivity, identify performance issues, and analyze network stability over time.
+UberPing is a PowerShell-based network monitoring tool that performs continuous ping operations with advanced analytics, logging, and anomaly detection. It's designed to help network administrators and IT professionals monitor network connectivity, identify performance issues, and analyze network stability over time.
 
 ## What It Does
 
@@ -50,7 +50,7 @@ SuperPing is a PowerShell-based network monitoring tool that performs continuous
 ### Basic Syntax
 
 ```powershell
-.\superping.ps1 -Destination <target> [parameters]
+.\uberping.ps1 -Destination <target> [parameters]
 ```
 
 ### Parameters
@@ -71,13 +71,13 @@ SuperPing is a PowerShell-based network monitoring tool that performs continuous
 Monitor Google DNS continuously with default settings:
 
 ```powershell
-.\superping.ps1 -Destination "8.8.8.8"
+.\uberping.ps1 -Destination "8.8.8.8"
 ```
 
 **Output:**
 ```
 Starting ping to 8.8.8.8
-Log file: C:\Scripts\superping_logs\ping_log_20250922_143832.txt
+Log file: C:\Scripts\uberping_logs\uberuberping_log_20250922_143832.txt
 Running continuously (Press Ctrl+C to stop)
 Ping interval: 1000ms
 Spike threshold: 100ms
@@ -91,7 +91,7 @@ Spike threshold: 100ms
 Run for 60 seconds with custom intervals:
 
 ```powershell
-.\superping.ps1 -Destination "google.com" -TimeLimit 60 -Interval 2000
+.\uberping.ps1 -Destination "google.com" -TimeLimit 60 -Interval 2000
 ```
 
 ### High-Sensitivity Adaptive Spike Detection
@@ -99,7 +99,7 @@ Run for 60 seconds with custom intervals:
 Monitor with lower multiplier for detecting minor performance issues:
 
 ```powershell
-.\superping.ps1 -Destination "192.168.1.1" -SpikeMultiplier 150 -TimeLimit 300
+.\uberping.ps1 -Destination "192.168.1.1" -SpikeMultiplier 150 -TimeLimit 300
 ```
 
 ### Custom Log File
@@ -107,7 +107,7 @@ Monitor with lower multiplier for detecting minor performance issues:
 Specify a custom log file location:
 
 ```powershell
-.\superping.ps1 -Destination "cloudflare.com" -LogFile "C:\Logs\network_monitor.log"
+.\uberping.ps1 -Destination "cloudflare.com" -LogFile "C:\Logs\network_monitor.log"
 ```
 
 ### Rapid Monitoring
@@ -115,7 +115,7 @@ Specify a custom log file location:
 High-frequency monitoring for detailed analysis:
 
 ```powershell
-.\superping.ps1 -Destination "8.8.4.4" -Interval 500 -TimeLimit 120
+.\uberping.ps1 -Destination "8.8.4.4" -Interval 500 -TimeLimit 120
 ```
 
 ### Debug Mode
@@ -123,7 +123,7 @@ High-frequency monitoring for detailed analysis:
 View detailed internal calculations and debugging information:
 
 ```powershell
-.\superping.ps1 -Destination "8.8.8.8" -DebugMode -TimeLimit 60
+.\uberping.ps1 -Destination "8.8.8.8" -DebugMode -TimeLimit 60
 ```
 
 ### High-Sensitivity Network Quality Analysis
@@ -131,7 +131,7 @@ View detailed internal calculations and debugging information:
 Monitor with very sensitive spike detection to catch network congestion:
 
 ```powershell
-.\superping.ps1 -Destination "8.8.8.8" -DebugMode -SpikeMultiplier 110 -TimeLimit 45
+.\uberping.ps1 -Destination "8.8.8.8" -DebugMode -SpikeMultiplier 110 -TimeLimit 45
 ```
 
 ## Sample Output
@@ -139,7 +139,7 @@ Monitor with very sensitive spike detection to catch network congestion:
 ### Console Output
 ```
 Starting ping to 8.8.8.8
-Log file: C:\Scripts\superping_logs\ping_log_20250922_143832.txt
+Log file: C:\Scripts\uberping_logs\uberping_log_20250922_143832.txt
 Time limit: 30 seconds
 Ping interval: 1000ms
 Adaptive spike detection: 200% multiplier (initial threshold: 50ms)
@@ -160,7 +160,7 @@ Total runtime: 30.15 seconds
 ----------------------------------------
 Anomalous Spikes (adaptive threshold: 38ms @ 200%):
 1 - 2025-09-22 14.38.34 - Reply from 8.8.8.8: bytes=32 time=150ms TTL=116
-Log saved to: C:\Scripts\superping_logs\ping_log_20250922_143832.txt
+Log saved to: C:\Scripts\uberping_logs\uberping_log_20250922_143832.txt
 ```
 
 ### Log File Content
@@ -186,7 +186,7 @@ High-sensitivity monitoring during network activity (110% multiplier with debug 
 
 **Command:**
 ```powershell
-.\superping.ps1 -Destination "8.8.8.8" -DebugMode -SpikeMultiplier 110 -TimeLimit 45
+.\uberping.ps1 -Destination "8.8.8.8" -DebugMode -SpikeMultiplier 110 -TimeLimit 45
 ```
 
 **Sample Output:**
@@ -244,19 +244,19 @@ Anomalous Spikes (adaptive threshold: 108ms @ 110%):
 ### Network Troubleshooting
 Monitor intermittent connectivity issues with adaptive detection:
 ```powershell
-.\superping.ps1 -Destination "problematic-server.com" -TimeLimit 3600 -SpikeMultiplier 180
+.\uberping.ps1 -Destination "problematic-server.com" -TimeLimit 3600 -SpikeMultiplier 180
 ```
 
 ### Baseline Performance Measurement
 Establish network performance baselines:
 ```powershell
-.\superping.ps1 -Destination "8.8.8.8" -TimeLimit 300 -Interval 1000 -LogFile "baseline_measurement.log"
+.\uberping.ps1 -Destination "8.8.8.8" -TimeLimit 300 -Interval 1000 -LogFile "baseline_measurement.log"
 ```
 
 ### Real-time Network Quality Monitoring
 Monitor critical services during maintenance windows with high sensitivity:
 ```powershell
-.\superping.ps1 -Destination "critical-service.internal" -Interval 500 -SpikeMultiplier 150
+.\uberping.ps1 -Destination "critical-service.internal" -Interval 500 -SpikeMultiplier 150
 ```
 
 ## Features
@@ -279,7 +279,7 @@ Monitor critical services during maintenance windows with high sensitivity:
 ## Notes
 
 - The script uses the native Windows `ping` command for accurate timing
-- Log files are automatically created in a `superping_logs` directory relative to the script location
+- Log files are automatically created in a `uberping_logs` directory relative to the script location
 - Press `Ctrl+C` to stop continuous monitoring sessions
 - All timestamps use the format: `yyyy-MM-dd HH.mm.ss`
 - Jitter calculation uses standard deviation of response times
@@ -297,5 +297,5 @@ Monitor critical services during maintenance windows with high sensitivity:
 
 Run the script with invalid parameters to see the parameter help:
 ```powershell
-Get-Help .\superping.ps1 -Full
+Get-Help .\uberping.ps1 -Full
 ```
