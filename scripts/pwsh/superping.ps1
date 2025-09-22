@@ -12,7 +12,10 @@ param(
     [int]$Interval = 1000,  # Ping interval in milliseconds
     
     [Parameter(Mandatory = $false)]
-    [int]$SpikeThreshold = 100  # Response time in ms that constitutes a spike
+    [int]$SpikeMultiplier = 200,  # Percentage multiplier for adaptive spike detection (200 = 200%)
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$DebugMode = $false  # Show detailed additional debugging information and internal calculations
 )
 
 # Function to write timestamped output
@@ -183,6 +186,60 @@ function Get-JitterStatistics {
     }
 }
 
+# Function to calculate trimmed mean (removing outliers)
+function Get-TrimmedMean {
+    param([array]$Values, [double]$TrimPercentage = 0.15)
+    
+    if ($Values.Count -eq 0) { return 0 }
+    if ($Values.Count -le 4) { return ($Values | Measure-Object -Average).Average }
+    
+    # Sort values and calculate trim indices
+    $sortedValues = $Values | Sort-Object
+    $trimCount = [math]::Floor($sortedValues.Count * $TrimPercentage)
+    
+    # Remove outliers from both ends
+    $trimmedValues = $sortedValues[$trimCount..($sortedValues.Count - 1 - $trimCount)]
+    
+    return ($trimmedValues | Measure-Object -Average).Average
+}
+
+# Function to calculate adaptive spike threshold
+function Get-AdaptiveSpikeThreshold {
+    param(
+        [array]$ResponseTimes,
+        [int]$Multiplier = 200,
+        [int]$MinThreshold = 20,
+        [int]$MaxThreshold = 500
+    )
+    
+    if ($ResponseTimes.Count -lt 15) {
+        # Not enough data - use a reasonable default for desktop/laptop networks
+        return 20
+    }
+    
+    # Calculate trimmed mean (baseline response time without outliers)
+    $trimmedMean = Get-TrimmedMean -Values $ResponseTimes
+    
+    # Calculate jitter of trimmed data
+    $trimCount = [math]::Floor($ResponseTimes.Count * 0.15)
+    $sortedTimes = $ResponseTimes | Sort-Object
+    $trimmedTimes = $sortedTimes[$trimCount..($sortedTimes.Count - 1 - $trimCount)]
+    
+    $jitterStats = Get-JitterStatistics -ResponseTimes $trimmedTimes
+    $trimmedJitter = if ($jitterStats) { $jitterStats.Jitter } else { 0 }
+    
+    # Baseline = trimmed mean + trimmed jitter
+    $baseline = $trimmedMean + $trimmedJitter
+    
+    # Adaptive threshold = baseline * multiplier percentage
+    $adaptiveThreshold = $baseline * ($Multiplier / 100.0)
+    
+    # Apply min/max constraints
+    $finalThreshold = [math]::Max($MinThreshold, [math]::Min($MaxThreshold, $adaptiveThreshold))
+    
+    return [math]::Round($finalThreshold, 0)
+}
+
 # Function to display and log summary statistics
 function Write-SummaryStatistics {
     param(
@@ -192,7 +249,9 @@ function Write-SummaryStatistics {
         [array]$ResponseTimes,
         [array]$AnomalousSpikes,
         [double]$TotalRuntime,
-        [string]$LogPath
+        [string]$LogPath,
+        [int]$FinalSpikeThreshold,
+        [int]$SpikeMultiplier
     )
     
     Write-Host "`n----------------------------------------" -ForegroundColor Green
@@ -222,7 +281,7 @@ function Write-SummaryStatistics {
     # Display anomalous spikes
     if ($AnomalousSpikes.Count -gt 0) {
         Write-Host "----------------------------------------" -ForegroundColor Yellow
-        Write-Host "Anomalous Spikes (>${script:SpikeThreshold}ms):" -ForegroundColor Yellow
+        Write-Host "Anomalous Spikes (adaptive threshold: ${FinalSpikeThreshold}ms @ ${SpikeMultiplier}%):" -ForegroundColor Yellow
         for ($i = 0; $i -lt $AnomalousSpikes.Count; $i++) {
             $spike = $AnomalousSpikes[$i]
             Write-Host "$($i + 1) - $($spike.Timestamp) - $($spike.Message)" -ForegroundColor Yellow
@@ -252,7 +311,7 @@ function Write-SummaryStatistics {
     
     # Log anomalous spikes
     if ($AnomalousSpikes.Count -gt 0) {
-        Write-TimestampedOutput "=== ANOMALOUS SPIKES (>${script:SpikeThreshold}ms) ===" $LogPath
+        Write-TimestampedOutput "=== ANOMALOUS SPIKES (adaptive threshold: ${FinalSpikeThreshold}ms @ ${SpikeMultiplier}%) ===" $LogPath
         for ($i = 0; $i -lt $AnomalousSpikes.Count; $i++) {
             $spike = $AnomalousSpikes[$i]
             Write-TimestampedOutput "$($i + 1) - $($spike.Timestamp) - $($spike.Message)" $LogPath
@@ -280,6 +339,7 @@ $successCount = 0
 $failCount = 0
 $responseTimes = @()
 $anomalousSpikes = @()
+$currentSpikeThreshold = 20  # Initial threshold before we have enough data (desktop/laptop networks)
 
 Write-Host "Starting ping to $Destination" -ForegroundColor Green
 Write-Host "Log file: $LogFile" -ForegroundColor Green
@@ -290,11 +350,11 @@ else {
     Write-Host "Running continuously (Press Ctrl+C to stop)" -ForegroundColor Green
 }
 Write-Host "Ping interval: $($Interval)ms" -ForegroundColor Green
-Write-Host "Spike threshold: ${SpikeThreshold}ms" -ForegroundColor Green
+Write-Host "Adaptive spike detection: ${SpikeMultiplier}% multiplier (initial threshold: ${currentSpikeThreshold}ms)" -ForegroundColor Green
 Write-Host "----------------------------------------" -ForegroundColor Green
 
 # Initial log entry
-Write-TimestampedOutput "Ping session started - Target: $Destination, Spike threshold: ${SpikeThreshold}ms" $LogFile
+Write-TimestampedOutput "Ping session started - Target: $Destination, Adaptive spike detection: ${SpikeMultiplier}% multiplier" $LogFile
 
 try {
     while ($true) {
@@ -313,15 +373,46 @@ try {
         $pingResult = Invoke-SinglePing -Target $Destination -Timeout 1000
         
         if ($pingResult.Success) {
-            # Store response time and check for spikes
+            # Store response time
             $responseTimes += $pingResult.Time
             
-            # Check for anomalous spikes
-            if ($pingResult.Time -gt $SpikeThreshold) {
+            # Update adaptive threshold every 10 successful pings
+            if ($successCount -gt 0 -and $successCount % 10 -eq 0) {
+                $newThreshold = Get-AdaptiveSpikeThreshold -ResponseTimes $responseTimes -Multiplier $SpikeMultiplier
+                if ($newThreshold -ne $currentSpikeThreshold) {
+                    $currentSpikeThreshold = $newThreshold
+                    if ($DebugMode) {
+                        # Calculate detailed breakdown for debug output
+                        $debugTrimmedMean = Get-TrimmedMean -Values $responseTimes
+                        $trimCount = [math]::Floor($responseTimes.Count * 0.15)
+                        $sortedTimes = $responseTimes | Sort-Object
+                        $trimmedTimes = $sortedTimes[$trimCount..($sortedTimes.Count - 1 - $trimCount)]
+                        $jitterStats = Get-JitterStatistics -ResponseTimes $trimmedTimes
+                        $debugJitter = if ($jitterStats) { $jitterStats.Jitter } else { 0 }
+                        $debugBaseline = $debugTrimmedMean + $debugJitter
+                        $debugPreConstraint = $debugBaseline * ($SpikeMultiplier / 100.0)
+                        
+                        $thresholdMessage = "Adaptive threshold updated: ${currentSpikeThreshold}ms (after $successCount pings)"
+                        $detailMessage = "  → Trimmed mean: $([math]::Round($debugTrimmedMean, 1))ms, Jitter: $([math]::Round($debugJitter, 1))ms, Baseline: $([math]::Round($debugBaseline, 1))ms"
+                        $calcMessage = "  → Pre-constraint: $([math]::Round($debugPreConstraint, 1))ms, Final: ${currentSpikeThreshold}ms"
+                        
+                        Write-Host $thresholdMessage -ForegroundColor Cyan
+                        Write-Host $detailMessage -ForegroundColor DarkCyan
+                        Write-Host $calcMessage -ForegroundColor DarkCyan
+                        Write-TimestampedOutput $thresholdMessage $LogFile
+                        Write-TimestampedOutput $detailMessage $LogFile
+                        Write-TimestampedOutput $calcMessage $LogFile
+                    }
+                }
+            }
+            
+            # Check for anomalous spikes using adaptive threshold
+            if ($pingResult.Time -gt $currentSpikeThreshold) {
                 $spikeEntry = @{
                     Timestamp    = Get-Date -Format "yyyy-MM-dd HH.mm.ss"
                     Message      = $pingResult.Message
                     ResponseTime = $pingResult.Time
+                    Threshold    = $currentSpikeThreshold
                 }
                 $anomalousSpikes += $spikeEntry
             }
@@ -346,5 +437,5 @@ finally {
     $endTime = Get-Date
     $totalTime = ($endTime - $startTime).TotalSeconds
     
-    Write-SummaryStatistics -TotalPings $pingCount -SuccessfulPings $successCount -FailedPings $failCount -ResponseTimes $responseTimes -AnomalousSpikes $anomalousSpikes -TotalRuntime $totalTime -LogPath $LogFile
+    Write-SummaryStatistics -TotalPings $pingCount -SuccessfulPings $successCount -FailedPings $failCount -ResponseTimes $responseTimes -AnomalousSpikes $anomalousSpikes -TotalRuntime $totalTime -LogPath $LogFile -FinalSpikeThreshold $currentSpikeThreshold -SpikeMultiplier $SpikeMultiplier
 }
