@@ -18,6 +18,26 @@ param(
     [switch]$DebugMode = $false  # Show detailed additional debugging information and internal calculations
 )
 
+# Check PowerShell version and execution policy compatibility
+$psVersion = $PSVersionTable.PSVersion
+$executionPolicy = Get-ExecutionPolicy
+
+# Warn about potential issues with older PowerShell versions
+if ($psVersion.Major -lt 5 -or ($psVersion.Major -eq 5 -and $psVersion.Minor -eq 0)) {
+    Write-Warning "This script is designed for PowerShell 5.1 or newer. Current version: $($psVersion.ToString())"
+    Write-Warning "Some features may not work correctly. Consider upgrading to PowerShell 7.x"
+}
+
+# Check if running on PowerShell 5.1 with restrictive execution policy
+if ($psVersion.Major -eq 5 -and $executionPolicy -in @('Restricted', 'AllSigned', 'RemoteSigned') -and $executionPolicy -ne 'Bypass') {
+    Write-Host "NOTICE: Running on PowerShell $($psVersion.ToString()) with ExecutionPolicy: $executionPolicy" -ForegroundColor Yellow
+    
+    if ($executionPolicy -eq 'Restricted') {
+        Write-Host "TIP: If you encounter execution policy errors, try:" -ForegroundColor Cyan
+        Write-Host "     PowerShell -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.UnboundArguments -join ' ')" -ForegroundColor White
+    }
+}
+
 # Function to write timestamped output
 function Write-TimestampedOutput {
     param(
