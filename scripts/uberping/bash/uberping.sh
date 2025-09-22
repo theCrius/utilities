@@ -3,6 +3,32 @@
 # UberPing - Advanced Network Connectivity Monitor (Bash Version)
 # A bash-based network monitoring tool with advanced analytics and adaptive spike detection
 
+# Check for required dependencies
+check_dependencies() {
+    local missing_deps=()
+    
+    if ! command -v ping >/dev/null 2>&1; then
+        missing_deps+=("ping")
+    fi
+    
+    if ! command -v bc >/dev/null 2>&1; then
+        missing_deps+=("bc")
+    fi
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        echo -e "\033[0;31mError: Missing required dependencies: ${missing_deps[*]}\033[0m" >&2
+        echo -e "\033[1;33mInstall them using:\033[0m" >&2
+        echo "  Ubuntu/Debian: sudo apt-get install ${missing_deps[*]}" >&2
+        echo "  CentOS/RHEL:   sudo yum install ${missing_deps[*]}" >&2
+        echo "  Alpine:        sudo apk add ${missing_deps[*]}" >&2
+        echo "  macOS:         brew install ${missing_deps[*]}" >&2
+        exit 1
+    fi
+}
+
+# Check dependencies before proceeding
+check_dependencies
+
 # Default values
 DESTINATION=""
 TIME_LIMIT=0

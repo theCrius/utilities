@@ -2,7 +2,12 @@
 
 ## Overview
 
-UberPing is a PowerShell-based network monitoring tool that performs continuous ping operations with advanced analytics, logging, and anomaly detection. It's designed to help network administrators and IT professionals monitor network connectivity, identify performance issues, and analyze network stability over time.
+UberPing is a cross-platform network monitoring tool available in both PowerShell and Bash versions. It performs continuous ping operations with advanced analytics, logging, and anomaly detection. Designed for network administrators and IT professionals to monitor network connectivity, identify performance issues, and analyze network stability over time.
+
+## Available Versions
+
+- **PowerShell Version** (`pwsh/uberping.ps1`) - For Windows systems
+- **Bash Version** (`bash/uberping.sh`) - For Linux, macOS, and Unix-like systems (including WSL)
 
 ## What It Does
 
@@ -17,8 +22,8 @@ UberPing is a PowerShell-based network monitoring tool that performs continuous 
 
 ##### Core Components
 
-1. **Ping Engine**: Uses native Windows `ping` command for accurate timing measurements
-2. **Response Parser**: Regex-based parsing to extract timing and status information from ping output
+1. **Ping Engine**: Uses native system `ping` command for accurate timing measurements
+2. **Response Parser**: Regex-based parsing to extract timing and status information from ping output  
 3. **Statistics Calculator**: Computes jitter (standard deviation) and quality assessments
 4. **Logging System**: Timestamped file logging with automatic directory creation
 5. **Adaptive Anomaly Detector**: Intelligently identifies spikes using baseline calculations and configurable multipliers
@@ -45,24 +50,73 @@ UberPing is a PowerShell-based network monitoring tool that performs continuous 
   - Requires minimum 15 samples before activation
   - Constraints: 20ms minimum, 500ms maximum threshold
 
+## Setup & Requirements
+
+### PowerShell Version (Windows)
+
+**Requirements:**
+- Windows PowerShell 5.1+ or PowerShell Core 6.0+
+- Network connectivity to target destination
+
+**First-time Setup:**
+```powershell
+# Allow script execution (choose one):
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser  # Recommended
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope CurrentUser       # Less secure but simpler
+```
+
+### Bash Version (Linux/macOS/WSL)
+
+**Requirements:**
+- Bash 4.0+
+- `ping` command (usually pre-installed)
+- `bc` command (for calculations)
+
+**Setup:**
+```bash
+# Make script executable
+chmod +x uberping.sh
+
+# Check if bc is available (required for calculations)
+which bc || echo "bc command not found - please install it"
+
+# Install bc if missing, pick your distro 
+sudo apt-get install bc # Ubuntu/Debian
+sudo yum install bc  # CentOS/RHEL/Fedora
+sudo apk add bc # Alpine Linux
+brew install bc # macOS with Homebrew
+```
+
 ## Usage
 
-### Basic Syntax
+### PowerShell Syntax
 
 ```powershell
 .\uberping.ps1 -Destination <target> [parameters]
 ```
 
+**One-time bypass** (if you prefer not to change execution policy):
+```powershell
+PowerShell -ExecutionPolicy Bypass -File "uberping.ps1" -Destination <target> [options]
+```
+
+### Bash Syntax
+
+```bash
+./uberping.sh -d <destination> [options]
+```
+
 ### Parameters
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `Destination` | String | Yes | - | Target hostname or IP address |
-| `TimeLimit` | Integer | No | 0 | Time limit in seconds (0 = continuous) |
-| `LogFile` | String | No | Auto-generated | Custom log file path |
-| `Interval` | Integer | No | 1000 | Ping interval in milliseconds |
-| `SpikeMultiplier` | Integer | No | 200 | Adaptive spike detection multiplier (200 = 200%) |
-| `DebugMode` | Switch | No | False | Show additional debugging information and internal calculations |
+| Function | PowerShell | Bash | Type | Required | Default | Description |
+|----------|------------|------|------|----------|---------|-------------|
+| Destination | `-Destination` | `-d` or `--destination` | String | Yes | - | Target hostname or IP address |
+| Time Limit | `-TimeLimit` | `-t` or `--time-limit` | Integer | No | 0 | Time limit in seconds (0 = continuous) |
+| Log File | `-LogFile` | `-l` or `--log-file` | String | No | Auto-generated | Custom log file path |
+| Interval | `-Interval` | `-i` or `--interval` | Integer | No | 1000 | Ping interval in milliseconds |
+| Spike Multiplier | `-SpikeMultiplier` | `-s` or `--spike-multiplier` | Integer | No | 200 | Adaptive spike detection multiplier (200 = 200%) |
+| Debug Mode | `-DebugMode` | `--debug` | Switch/Flag | No | False | Show additional debugging information |
+| Help | - | `-h` or `--help` | Switch/Flag | No | - | Show help message (Bash only) |
 
 ## Examples
 
@@ -70,8 +124,14 @@ UberPing is a PowerShell-based network monitoring tool that performs continuous 
 
 Monitor Google DNS continuously with default settings:
 
+**PowerShell:**
 ```powershell
 .\uberping.ps1 -Destination "8.8.8.8"
+```
+
+**Bash:**
+```bash
+./uberping.sh -d 8.8.8.8
 ```
 
 **Output:**
@@ -90,32 +150,56 @@ Spike threshold: 100ms
 
 Run for 60 seconds with custom intervals:
 
+**PowerShell:**
 ```powershell
 .\uberping.ps1 -Destination "google.com" -TimeLimit 60 -Interval 2000
+```
+
+**Bash:**
+```bash
+./uberping.sh -d google.com -t 60 -i 2000
 ```
 
 ### High-Sensitivity Adaptive Spike Detection
 
 Monitor with lower multiplier for detecting minor performance issues:
 
+**PowerShell:**
 ```powershell
 .\uberping.ps1 -Destination "192.168.1.1" -SpikeMultiplier 150 -TimeLimit 300
+```
+
+**Bash:**
+```bash
+./uberping.sh -d 192.168.1.1 -s 150 -t 300
 ```
 
 ### Custom Log File
 
 Specify a custom log file location:
 
+**PowerShell:**
 ```powershell
 .\uberping.ps1 -Destination "cloudflare.com" -LogFile "C:\Logs\network_monitor.log"
+```
+
+**Bash:**
+```bash
+./uberping.sh -d cloudflare.com -l /var/log/network_monitor.log
 ```
 
 ### Rapid Monitoring
 
 High-frequency monitoring for detailed analysis:
 
+**PowerShell:**
 ```powershell
 .\uberping.ps1 -Destination "8.8.4.4" -Interval 500 -TimeLimit 120
+```
+
+**Bash:**
+```bash
+./uberping.sh -d 8.8.4.4 -i 500 -t 120
 ```
 
 ### Debug Mode

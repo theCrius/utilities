@@ -1,2 +1,2 @@
-scripts/pwsh/uberping_logs/*
-scripts/bash/uberping_logs/*
+scripts/uberping/pwsh/uberping_logs/*
+scripts/uberping/bash/uberping_logs/*
